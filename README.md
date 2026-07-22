@@ -62,15 +62,14 @@ export VMREST_ALIAS_2=dev-server
 
 ## Transport
 
-FastMCP defaults to the **httpStreamable** transport on **port 51001**.
+The server defaults to **streamable-http** on **port 51001**.
 
 - Server URL: `http://localhost:51001/mcp`
-- You can change the port via `--port` or the `FASTMCP_PORT` env var
-- You can switch transport with `--transport stdio` or `FASTMCP_TRANSPORT`
+- Override with `--transport stdio` for stdio mode
 
 ## MCP Client Configuration
 
-Add the server to your MCP client (e.g. Claude Desktop) with:
+### streamable-http (default)
 
 ```json
 {
@@ -82,17 +81,14 @@ Add the server to your MCP client (e.g. Claude Desktop) with:
 }
 ```
 
-Or run via stdio:
+### stdio
 
 ```json
 {
   "mcpServers": {
     "vmware": {
       "command": "uv",
-      "args": ["run", "--directory", "D:\\1_Code\\VMwareMCP", "vmware-mcp"],
-      "env": {
-        "FASTMCP_TRANSPORT": "stdio"
-      }
+      "args": ["run", "vmware-mcp", "--transport", "stdio"]
     }
   }
 }

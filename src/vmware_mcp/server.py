@@ -52,14 +52,13 @@ def get_client_manager() -> VMRestClientManager:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    """Run the MCP server.
+    """Run the MCP server with streamable-http transport on port 51001.
 
-    By default FastMCP uses the httpStreamable transport on port 51001.
-    You can override the transport with the --transport flag or by setting
-    the FASTMCP_TRANSPORT env var.
+    Override with:
+        uv run vmware-mcp --transport stdio
     """
     get_client_manager()
-    mcp.run()
+    mcp.run(transport="streamable-http", port=51001)
 
 
 if __name__ == "__main__":
