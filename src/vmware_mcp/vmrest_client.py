@@ -11,7 +11,7 @@ from urllib.parse import quote
 import requests
 
 from vmware_mcp.config import VMRestHostConfig
-from vmware_mcp.models import PowerState, Snapshot, VM
+from vmware_mcp.models import Snapshot, VMRestrictions
 
 
 class VMRestClientError(Exception):
@@ -65,40 +65,33 @@ class VMRestClient:
     # VM operations
     # ------------------------------------------------------------------
 
-    def get_vms(self) -> List[VM]:
-        """Return all registered VMs."""
-        data = self._request("GET", "/api/vms")
-        results: List[VM] = []
-        for vm_raw in data.get("vms", []) if data else []:
-            vm_id = vm_raw.get("id", "")
-            results.append(
-                VM(
-                    id=vm_id,
-                    name=vm_raw.get("name", ""),
-                    path=vm_raw.get("path", vm_id),
-                    power_state=_parse_power_state(vm_raw.get("power_state", "")),
-                    guest_os=vm_raw.get("guest_os", ""),
-                    cpus=int(vm_raw.get("cpus", 0)),
-                    memory_mb=int(vm_raw.get("memory", 0)),
-                )
-            )
-        return results
+    def get_vms(self) -> List[Dict[str, str]]:
+        """Return all registered VMs.
 
-    def get_vm(self, vm_id: str) -> VM:
-        """Return detailed info for a single VM."""
+        The /api/vms endpoint returns a list of objects with ``id`` and
+        ``path`` fields only::
+
+            [{"id": "<vmx-path>", "path": "<vmx-path>"}, ...]
+        """
+        data = self._request("GET", "/api/vms")
+        # vmrest returns a list directly, not a dict wrapper
+        vm_list: list = data if isinstance(data, list) else data.get("vms", []) if data else []
+        # Normalise – only keep id and path as that is what the API provides
+        return [
+            {"id": vm_raw.get("id", ""), "path": vm_raw.get("path", "")}
+            for vm_raw in vm_list
+        ]
+
+    def get_vm(self, vm_id: str) -> VMRestrictions:
+        """Return detailed restrictions/config for a single VM.
+
+        Calls ``GET /api/vms/{id}/restrictions``.
+        """
         encoded = quote(vm_id, safe="")
-        data = self._request("GET", f"/api/vms/{encoded}")
+        data = self._request("GET", f"/api/vms/{encoded}/restrictions")
         if not data:
             raise VMRestClientError(404, f"VM not found: {vm_id}")
-        return VM(
-            id=data.get("id", vm_id),
-            name=data.get("name", ""),
-            path=data.get("path", vm_id),
-            power_state=_parse_power_state(data.get("power_state", "")),
-            guest_os=data.get("guest_os", ""),
-            cpus=int(data.get("cpus", 0)),
-            memory_mb=int(data.get("memory", 0)),
-        )
+        return VMRestrictions.model_validate(data)
 
     def power_operation(self, vm_id: str, op: str) -> None:
         """Perform a power operation on a VM.
@@ -133,7 +126,9 @@ class VMRestClient:
         encoded = quote(vm_id, safe="")
         data = self._request("GET", f"/api/vms/{encoded}/snapshots")
         results: List[Snapshot] = []
-        for snap_raw in data.get("snapshots", []) if data else []:
+        # vmrest may return a list directly or wrapped in a dict
+        snap_list = data if isinstance(data, list) else data.get("snapshots", []) if data else []
+        for snap_raw in snap_list:
             results.append(
                 Snapshot(
                     id=snap_raw.get("id", ""),
@@ -183,19 +178,3 @@ class VMRestClient:
     def close(self) -> None:
         """Close the underlying HTTP session."""
         self._session.close()
-
-
-# ------------------------------------------------------------------
-# Module-level helpers
-# ------------------------------------------------------------------
-
-def _parse_power_state(raw: str) -> PowerState:
-    """Map a raw power-state string from the API to the PowerState enum."""
-    mapping = {
-        "powered on": PowerState.ON,
-        "on": PowerState.ON,
-        "powered off": PowerState.OFF,
-        "off": PowerState.OFF,
-        "suspended": PowerState.SUSPENDED,
-    }
-    return mapping.get(raw.lower().strip(), PowerState.UNKNOWN)

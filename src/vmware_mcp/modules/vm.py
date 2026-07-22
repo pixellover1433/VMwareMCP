@@ -5,6 +5,8 @@ Tools for listing, inspecting, and controlling virtual machines.
 
 from __future__ import annotations
 
+import json
+
 from fastmcp import FastMCP
 
 from vmware_mcp.client_manager import HostNotFoundError, VMRestClientManager
@@ -28,6 +30,8 @@ def register(manager: VMRestClientManager) -> None:
     def list_vms(host: str) -> str:
         """List all virtual machines registered on a VMware host.
 
+        Returns JSON with each VM's ``id`` and ``path``.
+
         Args:
             host: Host alias or number (e.g. "my-workstation" or "1").
         """
@@ -39,25 +43,14 @@ def register(manager: VMRestClientManager) -> None:
         except VMRestClientError as exc:
             return f"Error communicating with host '{host}': {exc}"
 
-        if not vms:
-            return f"No VMs found on host '{host}'."
-
-        lines = [f"Virtual Machines on '{host}':", ""]
-        lines.append(f"{'Name':<30} {'State':<12} {'CPUs':<6} {'Memory':<10} {'OS'}")
-        lines.append("-" * 80)
-        for vm in vms:
-            mem = f"{vm.memory_mb} MB" if vm.memory_mb else "N/A"
-            lines.append(
-                f"{vm.name:<30} {vm.power_state.value:<12} {vm.cpus:<6} {mem:<10} {vm.guest_os}"
-            )
-
-        lines.append("")
-        lines.append(f"Total: {len(vms)} VM(s)")
-        return "\n".join(lines)
+        return json.dumps(vms, indent=2)
 
     @tools.tool()
     def get_vm_details(host: str, vm_id: str) -> str:
-        """Get detailed information about a specific virtual machine.
+        """Get detailed restrictions/config for a specific virtual machine.
+
+        Returns JSON from the ``GET /api/vms/{id}/restrictions`` endpoint
+        including CPU, memory, NICs, USB, VNC, isolation settings, etc.
 
         Args:
             host: Host alias or number (e.g. "my-workstation" or "1").
@@ -71,19 +64,7 @@ def register(manager: VMRestClientManager) -> None:
         except VMRestClientError as exc:
             return f"Error: {exc}"
 
-        mem = f"{vm.memory_mb} MB" if vm.memory_mb else "N/A"
-        lines = [
-            f"VM Details ({host}):",
-            "",
-            f"  Name:         {vm.name}",
-            f"  ID:           {vm.id}",
-            f"  Path:         {vm.path}",
-            f"  Power State:  {vm.power_state.value}",
-            f"  CPUs:         {vm.cpus}",
-            f"  Memory:       {mem}",
-            f"  Guest OS:     {vm.guest_os}",
-        ]
-        return "\n".join(lines)
+        return vm.model_dump_json(indent=2)
 
     # ------------------------------------------------------------------
     # Power tools
