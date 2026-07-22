@@ -1,7 +1,7 @@
 """VMware MCP Server - FastMCP entry point.
 
 Creates the FastMCP server instance, loads the multi-host client manager,
-and registers domain-specific tool modules (host, vm, snapshot).
+and registers domain-specific tool modules (host, vm).
 """
 
 from __future__ import annotations
@@ -26,7 +26,21 @@ logger = logging.getLogger("vmware_mcp")
 # ---------------------------------------------------------------------------
 # FastMCP instance
 # ---------------------------------------------------------------------------
-mcp = FastMCP("VMware MCP Server")
+mcp = FastMCP(
+    "VMware MCP Server",
+    instructions="""Use this server to query VMware Workstation virtual machines on
+local or remote Windows hosts via the vmrest REST API.
+
+When to use this server:
+- The user wants to list VMs registered on a host.
+- The user needs details about a specific VM (power state, hardware restrictions).
+- The user needs details about configured vmrest hosts.
+
+Capabilities provided by mounted tool modules:
+- Hosts: list configured vmrest hosts and check their connectivity.
+- VMs: list VMs and get VM details/restrictions.
+""",
+)
 
 # Module-level client manager (initialised in main)
 _manager: VMRestClientManager | None = None
@@ -51,11 +65,11 @@ def get_client_manager() -> VMRestClientManager:
 
 def _register_modules() -> None:
     """Import each tool module, register its tools, and mount it."""
-    from vmware_mcp.modules import host, vm, snapshot
+    from vmware_mcp.modules import host, vm
 
     manager = get_client_manager()
 
-    modules = [host, vm, snapshot]
+    modules = [host, vm]
     for mod in modules:
         mod.register(manager)
         mcp.mount(mod.tools)

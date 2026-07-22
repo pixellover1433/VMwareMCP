@@ -11,7 +11,10 @@ from vmware_mcp.client_manager import VMRestClientManager
 from vmware_mcp.models import HostInfo, ListHostsResponse
 from vmware_mcp.vmrest_client import VMRestClientError
 
-tools = FastMCP("VMware Hosts")
+tools = FastMCP(
+    "VMware Hosts",
+    instructions="Tools for listing and inspecting configured vmrest hosts and checking their connectivity.",
+)
 
 
 def register(manager: VMRestClientManager) -> None:

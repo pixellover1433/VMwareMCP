@@ -1,6 +1,6 @@
 """VM management MCP tools.
 
-Tools for listing, inspecting, and controlling virtual machines.
+Tools for listing and inspecting virtual machines.
 """
 
 from __future__ import annotations
@@ -12,7 +12,10 @@ from fastmcp import FastMCP
 from vmware_mcp.client_manager import HostNotFoundError, VMRestClientManager
 from vmware_mcp.vmrest_client import VMRestClientError
 
-tools = FastMCP("VMware VMs")
+tools = FastMCP(
+    "VMware VMs",
+    instructions="Tools for listing VMs and viewing VM details and restrictions.",
+)
 
 
 def register(manager: VMRestClientManager) -> None:
@@ -80,72 +83,3 @@ def register(manager: VMRestClientManager) -> None:
             "power_state": power_state,
         }
         return json.dumps(result, indent=2)
-
-    # ------------------------------------------------------------------
-    # Power tools
-    # ------------------------------------------------------------------
-
-    def _power_op(host: str, vm_id: str, op: str, op_label: str) -> str:
-        """Execute a power operation and return a result message."""
-        try:
-            client = _get_client(host)
-            client.power_operation(vm_id, op)
-        except HostNotFoundError as exc:
-            return str(exc)
-        except VMRestClientError as exc:
-            return f"Error: {exc}"
-        return f"VM '{vm_id}' {op_label} successfully on host '{host}'."
-
-    @tools.tool()
-    def power_on_vm(host: str, vm_id: str) -> str:
-        """Power on (start) a virtual machine.
-
-        Args:
-            host: Host alias or number (e.g. "my-workstation" or "1").
-            vm_id: The VMX file path of the VM.
-        """
-        return _power_op(host, vm_id, "on", "powered on")
-
-    @tools.tool()
-    def power_off_vm(host: str, vm_id: str) -> str:
-        """Hard power off a virtual machine (equivalent to pulling the plug).
-
-        Args:
-            host: Host alias or number (e.g. "my-workstation" or "1").
-            vm_id: The VMX file path of the VM.
-        """
-        return _power_op(host, vm_id, "off", "powered off")
-
-    @tools.tool()
-    def suspend_vm(host: str, vm_id: str) -> str:
-        """Suspend a running virtual machine (save state to disk).
-
-        Args:
-            host: Host alias or number (e.g. "my-workstation" or "1").
-            vm_id: The VMX file path of the VM.
-        """
-        return _power_op(host, vm_id, "suspend", "suspended")
-
-    @tools.tool()
-    def shutdown_vm(host: str, vm_id: str) -> str:
-        """Gracefully shut down a virtual machine via VMware Tools.
-
-        Requires VMware Tools to be installed and running inside the guest OS.
-
-        Args:
-            host: Host alias or number (e.g. "my-workstation" or "1").
-            vm_id: The VMX file path of the VM.
-        """
-        return _power_op(host, vm_id, "shutdown", "shut down")
-
-    @tools.tool()
-    def restart_vm(host: str, vm_id: str) -> str:
-        """Gracefully restart a virtual machine via VMware Tools.
-
-        Requires VMware Tools to be installed and running inside the guest OS.
-
-        Args:
-            host: Host alias or number (e.g. "my-workstation" or "1").
-            vm_id: The VMX file path of the VM.
-        """
-        return _power_op(host, vm_id, "restart", "restarted")
