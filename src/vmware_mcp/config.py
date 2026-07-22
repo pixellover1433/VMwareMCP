@@ -34,7 +34,7 @@ class VMRestHostConfig:
 
     @property
     def base_url(self) -> str:
-        return f"https://{self.host}:{self.port}"
+        return f"http://{self.host}:{self.port}"
 
 
 def load_hosts() -> List[VMRestHostConfig]:
