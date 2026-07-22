@@ -82,6 +82,17 @@ class VMRestClient:
             for vm_raw in vm_list
         ]
 
+    def get_power_state(self, vm_id: str) -> Dict[str, Any]:
+        """Return power state for a single VM.
+
+        Calls ``GET /api/vms/{id}/power``.
+        """
+        encoded = quote(vm_id, safe="")
+        data = self._request("GET", f"/api/vms/{encoded}/power")
+        if not data:
+            raise VMRestClientError(404, f"VM not found: {vm_id}")
+        return data
+
     def get_vm(self, vm_id: str) -> VMRestrictions:
         """Return detailed restrictions/config for a single VM.
 
