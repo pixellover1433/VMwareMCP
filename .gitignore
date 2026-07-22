@@ -1,1 +1,5 @@
 plans/architecture.md
+vmware_mcp.egg-info/
+__pycache__/
+uv.lock
+.env
