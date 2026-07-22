@@ -1,7 +1,7 @@
 """VMware MCP Server - FastMCP entry point.
 
-Creates the FastMCP server instance and wires up the multi-host client
-manager. MCP tools will be added separately as requested.
+Creates the FastMCP server instance, loads the multi-host client manager,
+and registers domain-specific tool modules (host, vm, snapshot).
 """
 
 from __future__ import annotations
@@ -28,23 +28,38 @@ logger = logging.getLogger("vmware_mcp")
 # ---------------------------------------------------------------------------
 mcp = FastMCP("VMware MCP Server")
 
-# ---------------------------------------------------------------------------
-# Client manager (loaded at import time so tools can reference it)
-# ---------------------------------------------------------------------------
-client_manager: VMRestClientManager | None = None
+# Module-level client manager (initialised in main)
+_manager: VMRestClientManager | None = None
 
 
 def get_client_manager() -> VMRestClientManager:
     """Return the global client manager, initialising it lazily."""
-    global client_manager
-    if client_manager is None:
-        client_manager = VMRestClientManager()
-        if not client_manager.aliases:
+    global _manager
+    if _manager is None:
+        _manager = VMRestClientManager()
+        if not _manager.aliases:
             logger.warning(
                 "No VMware hosts configured. "
                 "Set VMREST_HOST_1, VMREST_HOST_2, etc. environment variables."
             )
-    return client_manager
+    return _manager
+
+
+# ---------------------------------------------------------------------------
+# Tool module registration
+# ---------------------------------------------------------------------------
+
+def _register_modules() -> None:
+    """Import each tool module, register its tools, and mount it."""
+    from vmware_mcp.modules import host, vm, snapshot
+
+    manager = get_client_manager()
+
+    modules = [host, vm, snapshot]
+    for mod in modules:
+        mod.register(manager)
+        mcp.mount(mod.tools)
+        logger.info("Mounted tool module: %s", mod.__name__.split(".")[-1])
 
 
 # ---------------------------------------------------------------------------
@@ -58,6 +73,7 @@ def main() -> None:
         uv run vmware-mcp --transport stdio
     """
     get_client_manager()
+    _register_modules()
     mcp.run(transport="streamable-http", port=51001)
 
 
