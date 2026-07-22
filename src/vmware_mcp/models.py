@@ -50,3 +50,10 @@ class HostInfo(BaseModel):
     base_url: str = Field(description="Full base URL")
     reachable: bool = Field(description="Whether the host responded to ping")
     index: int = Field(description="1-based host number")
+
+
+class ListHostsResponse(BaseModel):
+    """Response model for list_hosts tool."""
+
+    hosts: list[HostInfo] = Field(description="List of configured vmrest hosts")
+    total: int = Field(description="Total number of hosts")
