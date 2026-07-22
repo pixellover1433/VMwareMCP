@@ -14,7 +14,7 @@ from vmware_mcp.vmrest_client import VMRestClientError
 
 tools = FastMCP(
     "VMware VMs",
-    instructions="Tools for listing VMs and viewing VM details and restrictions.",
+    instructions="Use this module to list virtual machines and inspect their configuration. Always call list_hosts first to discover available hosts, then use list_vms to enumerate VMs, and get_vm_details for in-depth information about a specific VM.",
 )
 
 
@@ -33,10 +33,33 @@ def register(manager: VMRestClientManager) -> None:
     def list_vms(host: str) -> str:
         """List all virtual machines registered on a VMware host.
 
-        Returns JSON with each VM's ``id``, ``path``, and ``power_state``.
+        When to use:
+        - Use after list_hosts to see all VMs on a specific host.
+        - Use when the user asks to see their VMs, find a VM, or check VM power states.
+        - Use to obtain VM IDs (VMX paths) needed by get_vm_details.
+
+        How to use:
+        - Pass the host alias (e.g. "workstation-1") or host number (e.g. "1")
+          as returned by list_hosts.
+
+        Returns a JSON array of VM objects, each with:
+        - ``id``: VMX file path (unique identifier, used as vm_id in other tools).
+        - ``path``: full filesystem path to the VMX file.
+        - ``power_state``: one of "on", "off", "suspended", or null if unreadable.
+
+        Example output:
+        ```json
+        [
+          {
+            "id": "/path/to/vm.vmx",
+            "path": "/path/to/vm.vmx",
+            "power_state": "on"
+          }
+        ]
+        ```
 
         Args:
-            host: Host alias or number (e.g. "my-workstation" or "1").
+            host: Host alias or host number from list_hosts (e.g. "workstation-1" or "1").
         """
         try:
             client = _get_client(host)
@@ -58,16 +81,29 @@ def register(manager: VMRestClientManager) -> None:
 
     @tools.tool()
     def get_vm_details(host: str, vm_id: str) -> str:
-        """Get detailed restrictions/config and power state for a specific VM.
+        """Get detailed configuration and power state for a specific virtual machine.
 
-        Returns a JSON object containing:
-        - ``restrictions``: data from ``GET /api/vms/{id}/restrictions``
-          (CPU, memory, NICs, USB, VNC, isolation settings, etc.)
-        - ``power_state``: data from ``GET /api/vms/{id}/power``
+        When to use:
+        - Use after list_vms to inspect a specific VM's hardware configuration.
+        - Use when the user asks about a VM's CPU count, memory, NICs, USB devices,
+          VNC settings, guest isolation, or other detailed configuration.
+        - Use when the user wants to know the current power state of a specific VM.
+
+        How to use:
+        - ``host``: the same host alias or number used in list_vms.
+        - ``vm_id``: the VM's ``id`` field (VMX file path) returned by list_vms.
+
+        Returns a JSON object with:
+        - ``restrictions``: detailed VM config including ``cpu`` (processor count),
+          ``memory`` (MB), ``niclist`` (network adapters with type/vmnet/MAC),
+          ``usbList``, ``remoteVNC`` (VNC enabled/port), ``guestIsolation``
+          (copy/paste/dnd/hgfs disabled flags), ``cddvdList``, ``serialPortList``,
+          ``parallelPortList``, ``firewareType``, and more.
+        - ``power_state``: one of "on", "off", "suspended".
 
         Args:
-            host: Host alias or number (e.g. "my-workstation" or "1").
-            vm_id: The VMX file path of the VM.
+            host: Host alias or host number from list_hosts (e.g. "workstation-1" or "1").
+            vm_id: The VMX file path of the VM, as returned by list_vms (e.g. "/path/to/vm.vmx").
         """
         try:
             client = _get_client(host)
