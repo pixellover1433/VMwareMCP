@@ -1,0 +1,21 @@
+[project]
+name = "vmware-mcp"
+version = "0.1.0"
+description = "MCP server for managing VMware Workstation VMs via vmrest.exe REST API"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=2.0",
+    "requests>=2.28",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+vmware-mcp = "vmware_mcp.server:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
