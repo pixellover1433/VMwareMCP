@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional
+from typing import Annotated, List, Optional, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, BeforeValidator, Field
 
 
 class PowerState(str, Enum):
@@ -45,12 +45,19 @@ class VMCPU(BaseModel):
     processors: int = Field(default=1, description="Number of virtual processors")
 
 
+def _int_or_zero(v: Union[str, int, None]) -> int:
+    """Coerce empty strings / None to 0, otherwise parse as int."""
+    if v is None or v == "":
+        return 0
+    return int(v)
+
+
 class ApplianceView(BaseModel):
     """Appliance view metadata."""
 
     author: str = Field(default="")
     version: str = Field(default="")
-    port: int = Field(default=0)
+    port: Annotated[int, BeforeValidator(_int_or_zero)] = Field(default=0)
     showAtPowerOn: str = Field(default="false")
 
 
@@ -58,7 +65,7 @@ class DeviceItem(BaseModel):
     """Generic device entry (CD/DVD, floppy, parallel, serial)."""
 
     index: int = Field(default=0)
-    startConnected: str = Field(default="false")
+    startConnected: Union[str, bool] = Field(default=False)
     connectionStatus: int = Field(default=0)
     devicePath: str = Field(default="")
 
@@ -73,10 +80,10 @@ class DeviceList(BaseModel):
 class GuestIsolation(BaseModel):
     """Guest isolation settings."""
 
-    copyDisabled: str = Field(default="false")
-    dndDisabled: str = Field(default="false")
-    hgfsDisabled: str = Field(default="false")
-    pasteDisabled: str = Field(default="false")
+    copyDisabled: Union[str, bool] = Field(default=False)
+    dndDisabled: Union[str, bool] = Field(default=False)
+    hgfsDisabled: Union[str, bool] = Field(default=False)
+    pasteDisabled: Union[str, bool] = Field(default=False)
 
 
 class NIC(BaseModel):
@@ -99,7 +106,7 @@ class USBDevice(BaseModel):
     """USB device entry."""
 
     index: int = Field(default=0)
-    connected: str = Field(default="false")
+    connected: Union[str, bool] = Field(default=False)
     backingInfo: str = Field(default="")
     BackingType: int = Field(default=0)
 
@@ -114,7 +121,7 @@ class USBList(BaseModel):
 class RemoteVNC(BaseModel):
     """Remote VNC configuration."""
 
-    VNCEnabled: str = Field(default="false")
+    VNCEnabled: Union[str, bool] = Field(default=False)
     VNCPort: int = Field(default=0)
 
 
