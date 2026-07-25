@@ -65,22 +65,49 @@ class VMRestClient:
     # VM operations
     # ------------------------------------------------------------------
 
+    def get_vm_param(self, vm_id: str, param_name: str) -> Optional[str]:
+        """Return a single VM configuration parameter value.
+
+        Calls ``GET /api/vms/{id}/params/{name}``.
+
+        The vmrest API returns ``{"name": "<param_name>", "value": "<value>"}``.
+        Returns the value string, or ``None`` if the parameter is not found.
+        """
+        encoded = quote(vm_id, safe="")
+        try:
+            data = self._request("GET", f"/api/vms/{encoded}/params/{param_name}")
+        except VMRestClientError as exc:
+            if exc.status_code == 404:
+                return None
+            raise
+        if not data:
+            return None
+        return data.get("value")
+
     def get_vms(self) -> List[Dict[str, str]]:
-        """Return all registered VMs.
+        """Return all registered VMs with their display names.
 
-        The /api/vms endpoint returns a list of objects with ``id`` and
-        ``path`` fields only::
+        First calls ``GET /api/vms`` to get the list of VMs, then calls
+        ``GET /api/vms/{id}/params/displayName`` for each VM to retrieve
+        its human-readable name.
 
-            [{"id": "<vmx-path>", "path": "<vmx-path>"}, ...]
+        Returns a list of dicts with ``id``, ``path``, and ``name`` keys::
+
+            [{"id": "<vmx-path>", "path": "<vmx-path>", "name": "My VM"}, ...]
         """
         data = self._request("GET", "/api/vms")
         # vmrest returns a list directly, not a dict wrapper
         vm_list: list = data if isinstance(data, list) else data.get("vms", []) if data else []
-        # Normalise – only keep id and path as that is what the API provides
-        return [
-            {"id": vm_raw.get("id", ""), "path": vm_raw.get("path", "")}
-            for vm_raw in vm_list
-        ]
+        results: List[Dict[str, str]] = []
+        for vm_raw in vm_list:
+            vm_id = vm_raw.get("id", "")
+            name = self.get_vm_param(vm_id, "displayName") or ""
+            results.append({
+                "id": vm_id,
+                "path": vm_raw.get("path", ""),
+                "name": name,
+            })
+        return results
 
     def get_power_state(self, vm_id: str) -> Dict[str, Any]:
         """Return power state for a single VM.

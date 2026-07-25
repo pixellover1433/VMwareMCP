@@ -36,6 +36,7 @@ def register(client: VMRestClient) -> None:
         Returns a JSON array of VM objects, each with:
         - ``id``: VMX file path (unique identifier, used as vm_id in other tools).
         - ``path``: full filesystem path to the VMX file.
+        - ``name``: human-readable VM display name (from the VMX config).
         - ``power_state``: one of "on", "off", "suspended", or null if unreadable.
 
         Example output:
@@ -44,6 +45,7 @@ def register(client: VMRestClient) -> None:
           {
             "id": "/path/to/vm.vmx",
             "path": "/path/to/vm.vmx",
+            "name": "My Virtual Machine",
             "power_state": "on"
           }
         ]
@@ -81,6 +83,7 @@ def register(client: VMRestClient) -> None:
         - ``vm_id``: the VM's ``id`` field (VMX file path) returned by list_vms.
 
         Returns a JSON object with:
+        - ``name``: human-readable VM display name.
         - ``restrictions``: detailed VM config including ``cpu`` (processor count),
           ``memory`` (MB), ``niclist`` (network adapters with type/vmnet/MAC),
           ``usbList``, ``remoteVNC`` (VNC enabled/port), ``guestIsolation``
@@ -93,12 +96,14 @@ def register(client: VMRestClient) -> None:
         """
         assert _client is not None
         try:
+            name = _client.get_vm_param(vm_id, "displayName") or ""
             restrictions = _client.get_vm(vm_id)
             power_state = _client.get_power_state(vm_id)
         except VMRestClientError as exc:
             return f"Error: {exc}"
 
         result = {
+            "name": name,
             "restrictions": restrictions.model_dump(),
             "power_state": power_state,
         }
