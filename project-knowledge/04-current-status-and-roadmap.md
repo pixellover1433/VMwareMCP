@@ -17,7 +17,7 @@
 | `list_vms` | ✅ Working | Lists all VMs with id, path, name, power state, and IP |
 | `get_vm_details` | ✅ Working | Returns detailed config, power state, and network info |
 | `get_vm_power_state` | ✅ Working | Returns current power state of a VM |
-| `set_vm_power_state` | ✅ Working | Performs power operations (on/off/suspend/shutdown/restart/pause/unpause/reset) |
+| `set_vm_power_state` | ✅ Working | Performs power operations (on/off/suspend/shutdown/pause/unpause). Sends `{"operation": "..."}` as JSON body. Returns `{"power_state": "..."}` from vmrest. |
 | Snapshot tools | ❌ Removed | Client methods exist but MCP tools are not exposed |
 
 ## Known Issues & Technical Debt

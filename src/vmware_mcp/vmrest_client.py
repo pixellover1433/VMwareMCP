@@ -148,29 +148,37 @@ class VMRestClient:
                 return None
             raise
 
-    def power_operation(self, vm_id: str, op: str) -> None:
+    def power_operation(self, vm_id: str, op: str) -> Dict[str, Any]:
         """Perform a power operation on a VM.
 
+        Calls ``PUT /api/vms/{id}/power`` with a JSON body containing
+        ``{"operation": "<op>"}``.
+
         Args:
-            vm_id: VMX file path or VM ID.
-            op: One of on, off, suspend, shutdown, restart, pause, unpause, reset.
+            vm_id: The VM identifier returned by ``list_vms``.
+            op: One of on, off, shutdown, suspend, pause, unpause.
+
+        Returns:
+            The JSON response from vmrest, typically
+            ``{"power_state": "<new_state>"}``.
         """
         valid_ops = {
             "on",
             "off",
-            "suspend",
             "shutdown",
-            "restart",
+            "suspend",
             "pause",
             "unpause",
-            "reset",
         }
         if op not in valid_ops:
             raise ValueError(
                 f"Invalid power operation '{op}'. Must be one of: {', '.join(sorted(valid_ops))}"
             )
         encoded = quote(vm_id, safe="")
-        self._request("PUT", f"/api/vms/{encoded}/power", params={"op": op})
+        data = self._request(
+            "PUT", f"/api/vms/{encoded}/power", json={"operation": op}
+        )
+        return data if data else {}
 
     # ------------------------------------------------------------------
     # Snapshot operations

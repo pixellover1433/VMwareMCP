@@ -57,7 +57,7 @@ def register(client: VMRestClient) -> None:
         """Perform a power operation on a virtual machine.
 
         When to use:
-        - Use when the user wants to start, stop, suspend, reset, or otherwise control a VM.
+        - Use when the user wants to start, stop, suspend, pause, or otherwise control a VM.
         - Use after confirming the current power state with get_vm_power_state.
 
         Args:
@@ -65,26 +65,26 @@ def register(client: VMRestClient) -> None:
             operation: The power operation to perform. Must be one of:
                 - ``on``: Power on the VM.
                 - ``off``: Power off the VM (hard power off).
-                - ``suspend``: Suspend the VM.
                 - ``shutdown``: Gracefully shut down the guest OS.
-                - ``restart``: Restart the guest OS.
+                - ``suspend``: Suspend the VM.
                 - ``pause``: Pause the VM.
                 - ``unpause``: Unpause the VM.
-                - ``reset``: Reset the VM (hard reset).
 
         Returns a JSON object with:
         - ``vm_id``: the VM identifier.
         - ``operation``: the operation that was performed.
+        - ``power_state``: the resulting power state reported by vmrest (e.g. "pausing", "on", "off").
         - ``success``: true if the operation completed successfully.
         - ``error``: error message if the operation failed, or null on success.
         """
         assert _client is not None
         try:
-            _client.power_operation(vm_id, operation)
+            resp = _client.power_operation(vm_id, operation)
         except VMRestClientError as exc:
             return json.dumps({
                 "vm_id": vm_id,
                 "operation": operation,
+                "power_state": None,
                 "success": False,
                 "error": str(exc),
             }, indent=2)
@@ -92,6 +92,7 @@ def register(client: VMRestClient) -> None:
             return json.dumps({
                 "vm_id": vm_id,
                 "operation": operation,
+                "power_state": None,
                 "success": False,
                 "error": str(exc),
             }, indent=2)
@@ -99,6 +100,7 @@ def register(client: VMRestClient) -> None:
         result = {
             "vm_id": vm_id,
             "operation": operation,
+            "power_state": resp.get("power_state"),
             "success": True,
             "error": None,
         }

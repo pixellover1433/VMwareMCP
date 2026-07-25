@@ -85,7 +85,7 @@ Each module follows the same pattern:
 
 #### [`modules/power.py`](src/vmware_mcp/modules/power.py)
 - [`get_vm_power_state(vm_id)`](src/vmware_mcp/modules/power.py:29) — Returns current power state.
-- [`set_vm_power_state(vm_id, operation)`](src/vmware_mcp/modules/power.py:56) — Performs power operations (on, off, suspend, shutdown, restart, pause, unpause, reset).
+- [`set_vm_power_state(vm_id, operation)`](src/vmware_mcp/modules/power.py:56) — Performs power operations (on, off, suspend, shutdown, pause, unpause).
 
 #### [`modules/snapshot.py`](src/vmware_mcp/modules/snapshot.py)
 - Placeholder module — snapshot MCP tools have been removed. The module is retained for future use.
