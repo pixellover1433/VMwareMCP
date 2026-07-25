@@ -1,4 +1,4 @@
-ge# 02 — Architecture
+# 02 — Architecture
 
 ## High-Level Design
 
@@ -56,7 +56,7 @@ VMwareMCP/
 
 ### [`vmrest_client.py`](src/vmware_mcp/vmrest_client.py) — HTTP Client Layer
 - [`VMRestClient`](src/vmware_mcp/vmrest_client.py:25) wraps all `vmrest.exe` REST calls using `requests.Session` with Basic Auth.
-- Provides typed methods: [`get_vms()`](src/vmware_mcp/vmrest_client.py:87), [`get_vm()`](src/vmware_mcp/vmrest_client.py:123), [`get_power_state()`](src/vmware_mcp/vmrest_client.py:112), [`power_operation()`](src/vmware_mcp/vmrest_client.py:151), [`get_snapshots()`](src/vmware_mcp/vmrest_client.py:179), [`create_snapshot()`](src/vmware_mcp/vmrest_client.py:198), [`delete_snapshot()`](src/vmware_mcp/vmrest_client.py:219), [`revert_snapshot()`](src/vmware_mcp/vmrest_client.py:225).
+- Provides typed methods: [`get_vms()`](src/vmware_mcp/vmrest_client.py:96), [`get_vm()`](src/vmware_mcp/vmrest_client.py:132), [`get_power_state()`](src/vmware_mcp/vmrest_client.py:121), [`power_operation()`](src/vmware_mcp/vmrest_client.py:160), [`get_snapshots()`](src/vmware_mcp/vmrest_client.py:202), [`create_snapshot()`](src/vmware_mcp/vmrest_client.py:221), [`delete_snapshot()`](src/vmware_mcp/vmrest_client.py:242), [`revert_snapshot()`](src/vmware_mcp/vmrest_client.py:248).
 - Raises [`VMRestClientError`](src/vmware_mcp/vmrest_client.py:17) with HTTP status code on failures.
 - URL-encodes VM IDs (opaque unique identifiers returned by `list_vms`) using `urllib.parse.quote`.
 

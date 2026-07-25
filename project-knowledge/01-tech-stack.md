@@ -13,7 +13,7 @@
 | **FastMCP** | >= 2.0 | Provides the `FastMCP` class that creates MCP (Model Context Protocol) servers. Handles tool registration, transport (streamable-http / stdio), and client communication. This is the backbone of the entire server. |
 | **Pydantic** | >= 2.0 | Data validation and serialization for VM models ([`VMConfig`](src/vmware_mcp/models.py:21), [`Snapshot`](src/vmware_mcp/models.py:37)). Used with `BaseModel` and `model_validate` / `model_dump` for clean JSON handling. |
 | **Requests** | >= 2.28 | HTTP client used by [`VMRestClient`](src/vmware_mcp/vmrest_client.py:25) to communicate with the `vmrest.exe` REST API. Supports Basic Auth and session reuse. |
-| **python-dotenv** | >= 1.0 | Loads `.env` files at startup in [`config.py`](src/vmware_mcp/config.py:18) so credentials don't need to be hardcoded or passed via shell. |
+| **python-dotenv** | >= 1.0 | Loads `.env` files at startup in [`config.py`](src/vmware_mcp/config.py:19) so credentials don't need to be hardcoded or passed via shell. |
 
 ## Build System
 
