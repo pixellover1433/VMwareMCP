@@ -29,15 +29,17 @@ logger = logging.getLogger("vmware_mcp")
 # ---------------------------------------------------------------------------
 mcp = FastMCP(
     "VMware MCP Server",
-    instructions="""Use this server to query VMware Workstation virtual machines on
+    instructions="""Use this server to manage VMware Workstation virtual machines on
 a local or remote Windows host via the vmrest REST API.
 
 When to use this server:
 - The user wants to list VMs registered on the configured host.
-- The user needs details about a specific VM (power state, hardware restrictions).
+- The user needs details about a specific VM (power state, hardware config, network).
+- The user wants to power on, off, suspend, reset, or otherwise control a VM.
 
 Capabilities provided by mounted tool modules:
-- VMs: list VMs and get VM details/restrictions.
+- VMs: list VMs and get VM details (config, network, power state).
+- Power: query and control VM power state (on, off, suspend, shutdown, restart, pause, unpause, reset).
 """,
 )
 
@@ -64,13 +66,17 @@ def get_client() -> VMRestClient:
 
 def _register_modules() -> None:
     """Import each tool module, register its tools, and mount it."""
-    from vmware_mcp.modules import vm
+    from vmware_mcp.modules import power, vm
 
     client = get_client()
 
     vm.register(client)
     mcp.mount(vm.tools)
     logger.info("Mounted tool module: vm")
+
+    power.register(client)
+    mcp.mount(power.tools)
+    logger.info("Mounted tool module: power")
 
 
 # ---------------------------------------------------------------------------

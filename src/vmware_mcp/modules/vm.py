@@ -35,7 +35,7 @@ def register(client: VMRestClient) -> None:
         - Use to obtain VM IDs (VMX paths) needed by get_vm_details.
 
         Returns a JSON array of VM objects, each with:
-        - ``id``: VMX file path (unique identifier, used as vm_id in other tools).
+        - ``id``: unique VM identifier (use this as ``vm_id`` in other tools).
         - ``path``: full filesystem path to the VMX file.
         - ``name``: human-readable VM display name (from the VMX config).
         - ``power_state``: one of "on", "off", "suspended", or null if unreadable.
@@ -88,7 +88,7 @@ def register(client: VMRestClient) -> None:
         - Use when the user wants to know the current power state of a specific VM.
 
         How to use:
-        - ``vm_id``: the VM's ``id`` field (VMX file path) returned by list_vms.
+        - ``vm_id``: the ``id`` field returned by list_vms.
 
         Returns a JSON object with:
         - ``name``: human-readable VM display name.
@@ -101,7 +101,7 @@ def register(client: VMRestClient) -> None:
           - ``hostname``: hostname reported by the guest OS, or null.
 
         Args:
-            vm_id: The VMX file path of the VM, as returned by list_vms (e.g. "/path/to/vm.vmx").
+            vm_id: The ``id`` field returned by list_vms.
         """
         assert _client is not None
         try:

@@ -95,6 +95,7 @@ VMwareMCP/
 │   ├── config.py            # Environment-based configuration
 │   └── modules/
 │       ├── vm.py            # VM list and detail tools
+│       ├── power.py         # Power state query and control tools
 │       └── snapshot.py      # Snapshot tools (placeholder)
 ├── pyproject.toml
 └── README.md
