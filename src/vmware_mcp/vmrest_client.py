@@ -30,6 +30,10 @@ class VMRestClient:
         self._session = requests.Session()
         self._session.auth = (config.username, config.password)
         self._session.verify = config.verify_ssl
+        self._session.headers.update({
+            "Accept": "application/vnd.vmware.vmw.rest-v1+json",
+            "Content-Type": "application/vnd.vmware.vmw.rest-v1+json",
+        })
         self._base_url = config.base_url
 
     # ------------------------------------------------------------------
@@ -151,8 +155,8 @@ class VMRestClient:
     def power_operation(self, vm_id: str, op: str) -> Dict[str, Any]:
         """Perform a power operation on a VM.
 
-        Calls ``PUT /api/vms/{id}/power`` with a JSON body containing
-        ``{"operation": "<op>"}``.
+        Calls ``PUT /api/vms/{id}/power?operation=<op>`` with the operation
+        as a query parameter.
 
         Args:
             vm_id: The VM identifier returned by ``list_vms``.
@@ -176,7 +180,7 @@ class VMRestClient:
             )
         encoded = quote(vm_id, safe="")
         data = self._request(
-            "PUT", f"/api/vms/{encoded}/power", json={"operation": op}
+            "PUT", f"/api/vms/{encoded}/power", params={"operation": op}
         )
         return data if data else {}
 
