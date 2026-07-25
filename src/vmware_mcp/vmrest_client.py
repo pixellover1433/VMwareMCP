@@ -32,7 +32,6 @@ class VMRestClient:
         self._session.verify = config.verify_ssl
         self._session.headers.update({
             "Accept": "application/vnd.vmware.vmw.rest-v1+json",
-            "Content-Type": "application/vnd.vmware.vmw.rest-v1+json",
         })
         self._base_url = config.base_url
 
@@ -43,6 +42,8 @@ class VMRestClient:
     def _url(self, path: str) -> str:
         return f"{self._base_url}{path}"
 
+    _VMREST_CONTENT_TYPE = "application/vnd.vmware.vmw.rest-v1+json"
+
     def _request(
         self,
         method: str,
@@ -50,10 +51,14 @@ class VMRestClient:
         *,
         params: Optional[Dict[str, Any]] = None,
         json: Optional[Dict[str, Any]] = None,
+        data: Optional[str] = None,
+        extra_headers: Optional[Dict[str, str]] = None,
     ) -> Optional[Dict[str, Any]]:
         """Send a request and return parsed JSON or None on 204."""
+        headers = dict(extra_headers) if extra_headers else {}
         resp = self._session.request(
-            method, self._url(path), params=params, json=json, timeout=30
+            method, self._url(path), params=params, json=json, data=data,
+            headers=headers, timeout=30,
         )
         if resp.status_code == 204:
             return None
@@ -155,8 +160,8 @@ class VMRestClient:
     def power_operation(self, vm_id: str, op: str) -> Dict[str, Any]:
         """Perform a power operation on a VM.
 
-        Calls ``PUT /api/vms/{id}/power?operation=<op>`` with the operation
-        as a query parameter.
+        Calls ``PUT /api/vms/{id}/power`` with the operation as a plain-text
+        body string (e.g. ``pause``) and VMware content-type headers.
 
         Args:
             vm_id: The VM identifier returned by ``list_vms``.
@@ -179,10 +184,16 @@ class VMRestClient:
                 f"Invalid power operation '{op}'. Must be one of: {', '.join(sorted(valid_ops))}"
             )
         encoded = quote(vm_id, safe="")
-        data = self._request(
-            "PUT", f"/api/vms/{encoded}/power", params={"operation": op}
+        result = self._request(
+            "PUT",
+            f"/api/vms/{encoded}/power",
+            data=op,
+            extra_headers={
+                "Content-Type": self._VMREST_CONTENT_TYPE,
+                "Accept": self._VMREST_CONTENT_TYPE,
+            },
         )
-        return data if data else {}
+        return result if result else {}
 
     # ------------------------------------------------------------------
     # Snapshot operations
