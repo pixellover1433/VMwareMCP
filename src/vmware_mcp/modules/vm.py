@@ -84,8 +84,7 @@ def register(client: VMRestClient) -> None:
 
         When to use:
         - Use after list_vms to inspect a specific VM's hardware configuration.
-        - Use when the user asks about a VM's CPU count, memory, NICs, USB devices,
-          VNC settings, guest isolation, or other detailed configuration.
+        - Use when the user asks about a VM's CPU count, memory, or other configuration.
         - Use when the user wants to know the current power state of a specific VM.
 
         How to use:
@@ -93,11 +92,7 @@ def register(client: VMRestClient) -> None:
 
         Returns a JSON object with:
         - ``name``: human-readable VM display name.
-        - ``restrictions``: detailed VM config including ``cpu`` (processor count),
-          ``memory`` (MB), ``niclist`` (network adapters with type/vmnet/MAC),
-          ``usbList``, ``remoteVNC`` (VNC enabled/port), ``guestIsolation``
-          (copy/paste/dnd/hgfs disabled flags), ``cddvdList``, ``serialPortList``,
-          ``parallelPortList``, ``firewareType``, and more.
+        - ``config``: VM configuration with ``cpu`` (processor count) and ``memory`` (MB).
         - ``power_state``: one of "on", "off", "suspended".
         - ``network``: network information including:
           - ``ip``: list of IP addresses with subnet masks (e.g. ["10.0.0.5/24"]).
@@ -111,7 +106,7 @@ def register(client: VMRestClient) -> None:
         assert _client is not None
         try:
             name = _client.get_vm_param(vm_id, "displayName") or ""
-            restrictions = _client.get_vm(vm_id)
+            config = _client.get_vm(vm_id)
             power_state = _client.get_power_state(vm_id)
             nic_data = _client.get_vm_nic_ips(vm_id)
         except VMRestClientError as exc:
@@ -119,7 +114,7 @@ def register(client: VMRestClient) -> None:
 
         result = {
             "name": name,
-            "restrictions": restrictions.model_dump(),
+            "config": config.model_dump(),
             "power_state": power_state,
             "network": _extract_network_info(nic_data),
         }

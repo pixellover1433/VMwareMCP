@@ -11,7 +11,7 @@ from urllib.parse import quote
 import requests
 
 from vmware_mcp.config import VMRestHostConfig
-from vmware_mcp.models import Snapshot, VMRestrictions
+from vmware_mcp.models import Snapshot, VMConfig
 
 
 class VMRestClientError(Exception):
@@ -120,16 +120,17 @@ class VMRestClient:
             raise VMRestClientError(404, f"VM not found: {vm_id}")
         return data
 
-    def get_vm(self, vm_id: str) -> VMRestrictions:
-        """Return detailed restrictions/config for a single VM.
+    def get_vm(self, vm_id: str) -> VMConfig:
+        """Return detailed configuration for a single VM.
 
-        Calls ``GET /api/vms/{id}/restrictions``.
+        Calls ``GET /api/vms/{id}/restrictions`` and maps the response to a
+        :class:`VMConfig` model containing only ``id``, ``cpu``, and ``memory``.
         """
         encoded = quote(vm_id, safe="")
         data = self._request("GET", f"/api/vms/{encoded}/restrictions")
         if not data:
             raise VMRestClientError(404, f"VM not found: {vm_id}")
-        return VMRestrictions.model_validate(data)
+        return VMConfig.model_validate(data)
 
     def get_vm_nic_ips(self, vm_id: str) -> Optional[Dict[str, Any]]:
         """Return NIC IP information for a VM.
