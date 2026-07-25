@@ -131,6 +131,22 @@ class VMRestClient:
             raise VMRestClientError(404, f"VM not found: {vm_id}")
         return VMRestrictions.model_validate(data)
 
+    def get_vm_nic_ips(self, vm_id: str) -> Optional[Dict[str, Any]]:
+        """Return NIC IP information for a VM.
+
+        Calls ``GET /api/vms/{id}/nicips``.
+
+        Returns the raw JSON response containing ``nics``, ``routes``, and
+        ``dns`` objects, or ``None`` if the endpoint is not available.
+        """
+        encoded = quote(vm_id, safe="")
+        try:
+            return self._request("GET", f"/api/vms/{encoded}/nicips")
+        except VMRestClientError as exc:
+            if exc.status_code == 404:
+                return None
+            raise
+
     def power_operation(self, vm_id: str, op: str) -> None:
         """Perform a power operation on a VM.
 
