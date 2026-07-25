@@ -155,21 +155,3 @@ class Snapshot(BaseModel):
     parent_id: Optional[str] = Field(
         default=None, description="Parent snapshot ID"
     )
-
-
-class HostInfo(BaseModel):
-    """Information about a configured vmrest host."""
-
-    alias: str = Field(description="Friendly host name")
-    host: str = Field(description="Hostname or IP address")
-    port: int = Field(description="vmrest API port")
-    base_url: str = Field(description="Full base URL")
-    reachable: bool = Field(description="Whether the host responded to ping")
-    index: int = Field(description="1-based host number")
-
-
-class ListHostsResponse(BaseModel):
-    """Response model for list_hosts tool."""
-
-    hosts: list[HostInfo] = Field(description="List of configured vmrest hosts")
-    total: int = Field(description="Total number of hosts")

@@ -21,10 +21,10 @@ cd VMwareMCP
 uv venv
 uv pip install -e .
 
-# Set at least one host (use your Windows credentials)
-export VMREST_HOST_1=localhost
-export VMREST_USERNAME_1=your_username
-export VMREST_PASSWORD_1=your_password
+# Configure the vmrest host (use your Windows credentials)
+export VMREST_HOST=localhost
+export VMREST_USERNAME=your_username
+export VMREST_PASSWORD=your_password
 
 # Run the server
 uv run vmware-mcp
@@ -32,32 +32,22 @@ uv run vmware-mcp
 
 ## Environment Variables
 
-Each host uses a numbered suffix (`_1`, `_2`, …).  The server scans
-sequentially and stops at the first missing `VMREST_HOST_N`.
-
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `VMREST_HOST_N` | **Yes** | — | Hostname or IP address |
-| `VMREST_PORT_N` | No | `8697` | vmrest API port |
-| `VMREST_USERNAME_N` | **Yes** | — | Windows username (Basic Auth) |
-| `VMREST_PASSWORD_N` | **Yes** | — | Windows password (Basic Auth) |
-| `VMREST_VERIFY_SSL_N` | No | `false` | Verify self-signed certificate |
-| `VMREST_ALIAS_N` | No | `host-N` | Friendly name for this host |
+| `VMREST_HOST` | **Yes** | — | Hostname or IP address of the vmrest host |
+| `VMREST_PORT` | No | `8697` | vmrest API port |
+| `VMREST_USERNAME` | **Yes** | — | Windows username (Basic Auth) |
+| `VMREST_PASSWORD` | **Yes** | — | Windows password (Basic Auth) |
+| `VMREST_VERIFY_SSL` | No | `false` | Verify self-signed certificate |
 
-### Example (two hosts)
+### Example
 
 ```bash
-# Host 1 – local workstation
-export VMREST_HOST_1=localhost
-export VMREST_USERNAME_1=Admin
-export VMREST_PASSWORD_1=secret
-export VMREST_ALIAS_1=my-pc
-
-# Host 2 – remote dev server
-export VMREST_HOST_2=192.168.1.100
-export VMREST_USERNAME_2=Admin
-export VMREST_PASSWORD_2=secret2
-export VMREST_ALIAS_2=dev-server
+# Using a .env file (copy .env.example to .env)
+VMREST_HOST=localhost
+VMREST_PORT=8697
+VMREST_USERNAME=Admin
+VMREST_PASSWORD=secret
 ```
 
 ## Transport
@@ -100,10 +90,12 @@ The server defaults to **streamable-http** on **port 51001**.
 VMwareMCP/
 ├── src/vmware_mcp/
 │   ├── server.py            # FastMCP server entry point
-│   ├── client_manager.py    # Multi-host client pool
-│   ├── vmrest_client.py     # HTTP client for single vmrest host
+│   ├── vmrest_client.py     # HTTP client for vmrest host
 │   ├── models.py            # Pydantic data models
-│   └── config.py            # Environment-based configuration
+│   ├── config.py            # Environment-based configuration
+│   └── modules/
+│       ├── vm.py            # VM list and detail tools
+│       └── snapshot.py      # Snapshot tools (placeholder)
 ├── pyproject.toml
 └── README.md
 ```

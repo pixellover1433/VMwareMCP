@@ -1,7 +1,7 @@
 """VMware MCP Server - FastMCP entry point.
 
-Creates the FastMCP server instance, loads the multi-host client manager,
-and registers domain-specific tool modules (host, vm).
+Creates the FastMCP server instance, loads the vmrest client,
+and registers domain-specific tool modules (vm).
 """
 
 from __future__ import annotations
@@ -11,7 +11,8 @@ import sys
 
 from fastmcp import FastMCP
 
-from vmware_mcp.client_manager import VMRestClientManager
+from vmware_mcp.config import VMRestHostConfig, load_config
+from vmware_mcp.vmrest_client import VMRestClient
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -29,34 +30,32 @@ logger = logging.getLogger("vmware_mcp")
 mcp = FastMCP(
     "VMware MCP Server",
     instructions="""Use this server to query VMware Workstation virtual machines on
-local or remote Windows hosts via the vmrest REST API.
+a local or remote Windows host via the vmrest REST API.
 
 When to use this server:
-- The user wants to list VMs registered on a host.
+- The user wants to list VMs registered on the configured host.
 - The user needs details about a specific VM (power state, hardware restrictions).
-- The user needs details about configured vmrest hosts.
 
 Capabilities provided by mounted tool modules:
-- Hosts: list configured vmrest hosts and check their connectivity.
 - VMs: list VMs and get VM details/restrictions.
 """,
 )
 
-# Module-level client manager (initialised in main)
-_manager: VMRestClientManager | None = None
+# Module-level client (initialised in main)
+_client: VMRestClient | None = None
+_config: VMRestHostConfig | None = None
 
 
-def get_client_manager() -> VMRestClientManager:
-    """Return the global client manager, initialising it lazily."""
-    global _manager
-    if _manager is None:
-        _manager = VMRestClientManager()
-        if not _manager.aliases:
-            logger.warning(
-                "No VMware hosts configured. "
-                "Set VMREST_HOST_1, VMREST_HOST_2, etc. environment variables."
-            )
-    return _manager
+def get_client() -> VMRestClient:
+    """Return the global vmrest client, initialising it lazily."""
+    global _client, _config
+    if _client is None:
+        _config = load_config()
+        _client = VMRestClient(_config)
+        logger.info(
+            "Connected to vmrest at %s:%d", _config.host, _config.port
+        )
+    return _client
 
 
 # ---------------------------------------------------------------------------
@@ -65,15 +64,13 @@ def get_client_manager() -> VMRestClientManager:
 
 def _register_modules() -> None:
     """Import each tool module, register its tools, and mount it."""
-    from vmware_mcp.modules import host, vm
+    from vmware_mcp.modules import vm
 
-    manager = get_client_manager()
+    client = get_client()
 
-    modules = [host, vm]
-    for mod in modules:
-        mod.register(manager)
-        mcp.mount(mod.tools)
-        logger.info("Mounted tool module: %s", mod.__name__.split(".")[-1])
+    vm.register(client)
+    mcp.mount(vm.tools)
+    logger.info("Mounted tool module: vm")
 
 
 # ---------------------------------------------------------------------------
@@ -86,7 +83,7 @@ def main() -> None:
     Override with:
         uv run vmware-mcp --transport stdio
     """
-    get_client_manager()
+    get_client()
     _register_modules()
     mcp.run(transport="streamable-http", port=51001)
 
