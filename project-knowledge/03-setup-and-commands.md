@@ -3,9 +3,10 @@
 ## Prerequisites
 
 1. **Python >= 3.11** — must be available on PATH.
-2. **VMware Workstation Pro 17+** — installed on the target Windows host with the REST API service enabled.
+2. **VMware Workstation Pro 17+** — installed on the target Windows host.
 3. **vmrest.exe** — must be running on port 8697 (default). Start it from VMware Workstation's installation directory.
-4. **uv** (recommended) — fast Python package manager. Install via `pip install uv` or see [uv docs](https://docs.astral.sh/uv/). Alternatively, use standard `pip`.
+4. **vmcli.exe** — required **only** for snapshot tools. Bundled with VMware Workstation. The MCP server must run on the **same host** as VMware Workstation for snapshot tools to work (they invoke this binary locally).
+5. **uv** (recommended) — fast Python package manager. Install via `pip install uv` or see [uv docs](https://docs.astral.sh/uv/). Alternatively, use standard `pip`.
 
 ## Local Environment Setup
 
@@ -35,6 +36,7 @@ All variables are read from `.env` (project root) or the shell environment.
 | `VMREST_USERNAME` | **Yes** | — | Windows username for Basic Auth |
 | `VMREST_PASSWORD` | **Yes** | — | Windows password for Basic Auth |
 | `VMREST_VERIFY_SSL` | No | `false` | Set to `true` to verify the self-signed SSL certificate |
+| `VMCLI_PATH` | No | `C:\Program Files (x86)\VMware\VMware Workstation\vmcli.exe` | Full path to `vmcli.exe`. Only needed by snapshot tools, and only when the server runs on the same host as VMware Workstation. Override if VMware is installed in a non-default location. |
 
 **Never commit `.env` to version control** — it is in [`.gitignore`](.gitignore).
 
@@ -103,7 +105,12 @@ ruff format src/
 1. Ensure `vmrest.exe` is running: open a browser to `http://localhost:8697/api/vms` — you should get a JSON response (may prompt for credentials).
 2. Start the MCP server: `uv run vmware-mcp`.
 3. Connect an MCP client (e.g., Claude Desktop, Roo Code) to `http://localhost:51001/mcp`.
-4. The client should see tools: `list_vms`, `get_vm_details`, `get_vm_power_state`, `set_vm_power_state`.
+4. The client should see these tools:
+   - `list_vms`, `get_vm_details` (VM module)
+   - `get_vm_power_state`, `set_vm_power_state` (Power module)
+   - `check_server_health` (Health module)
+   - `get_vm_snapshots` (Snapshot module)
+5. **Quick smoke test:** Call `check_server_health` first — it confirms the server can reach and authenticate against the vmrest backend before you try other operations.
 
 ## Troubleshooting
 
@@ -114,3 +121,6 @@ ruff format src/
 | `Connection refused` on port 8697 | Ensure `vmrest.exe` is running. Start it from VMware Workstation. |
 | `401 Unauthorized` | Check `VMREST_USERNAME` and `VMREST_PASSWORD` match your Windows credentials. |
 | `SSL certificate verify failed` | Set `VMREST_VERIFY_SSL=false` (default) or properly configure certificates. |
+| `check_server_health` returns `unhealthy` | Inspect the returned `error` and `status_code` — usually a vmrest connectivity or auth problem. |
+| `vmcli.exe not found at '...'` (from `get_vm_snapshots`) | Set `VMCLI_PATH` to the correct location, and ensure the server runs on the same host as VMware Workstation. |
+| `get_vm_snapshots` returns `VM not found` | Pass the exact `id` field from `list_vms` (not the `path`). The tool resolves the id → path automatically. |
