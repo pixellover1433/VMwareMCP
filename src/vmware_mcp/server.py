@@ -12,6 +12,7 @@ import sys
 from fastmcp import FastMCP
 
 from vmware_mcp.config import VMRestHostConfig, load_config
+from vmware_mcp.vmcli_client import VMCliClient
 from vmware_mcp.vmrest_client import VMRestClient
 
 # ---------------------------------------------------------------------------
@@ -41,11 +42,13 @@ Capabilities provided by mounted tool modules:
 - VMs: list VMs and get VM details (config, network, power state).
 - Power: query and control VM power state (on, off, suspend, shutdown, pause, unpause).
 - Health: check that the server can reach the vmrest backend (check_server_health).
+- Snapshots: list a VM's snapshots via local vmcli.exe (get_vm_snapshots).
 """,
 )
 
-# Module-level client (initialised in main)
+# Module-level clients (initialised in main)
 _client: VMRestClient | None = None
+_vmcli: VMCliClient | None = None
 _config: VMRestHostConfig | None = None
 
 
@@ -61,15 +64,27 @@ def get_client() -> VMRestClient:
     return _client
 
 
+def get_vmcli() -> VMCliClient:
+    """Return the global vmcli client, initialising it lazily."""
+    global _vmcli, _config
+    if _vmcli is None:
+        if _config is None:
+            _config = load_config()
+        _vmcli = VMCliClient(_config)
+        logger.info("Initialised vmcli client using '%s'", _config.vmcli_path)
+    return _vmcli
+
+
 # ---------------------------------------------------------------------------
 # Tool module registration
 # ---------------------------------------------------------------------------
 
 def _register_modules() -> None:
     """Import each tool module, register its tools, and mount it."""
-    from vmware_mcp.modules import health, power, vm
+    from vmware_mcp.modules import health, power, snapshot, vm
 
     client = get_client()
+    vmcli = get_vmcli()
 
     vm.register(client)
     mcp.mount(vm.tools)
@@ -82,6 +97,10 @@ def _register_modules() -> None:
     health.register(client)
     mcp.mount(health.tools)
     logger.info("Mounted tool module: health")
+
+    snapshot.register(vmcli)
+    mcp.mount(snapshot.tools)
+    logger.info("Mounted tool module: snapshot")
 
 
 # ---------------------------------------------------------------------------
