@@ -71,6 +71,45 @@ class VMRestClient:
         return resp.json()
 
     # ------------------------------------------------------------------
+    # Health
+    # ------------------------------------------------------------------
+
+    def health_check(self) -> Dict[str, Any]:
+        """Check connectivity to the vmrest.exe API.
+
+        Sends a lightweight ``GET /api/vms`` request and reports whether the
+        vmrest service is reachable and responding to authenticated requests.
+
+        Returns a dict with:
+        - ``reachable``: True if vmrest responded successfully.
+        - ``base_url``: the configured vmrest base URL.
+        - ``vm_count``: number of registered VMs (only when reachable).
+        - ``status_code``: HTTP status code returned on failure (when applicable).
+        - ``error``: error message on failure, otherwise None.
+        """
+        result: Dict[str, Any] = {
+            "reachable": False,
+            "base_url": self._base_url,
+            "vm_count": None,
+            "status_code": None,
+            "error": None,
+        }
+        try:
+            data = self._request("GET", "/api/vms")
+        except VMRestClientError as exc:
+            result["status_code"] = exc.status_code
+            result["error"] = str(exc)
+            return result
+        except requests.exceptions.RequestException as exc:
+            result["error"] = f"Connection failed: {exc}"
+            return result
+
+        vm_list = data if isinstance(data, list) else []
+        result["reachable"] = True
+        result["vm_count"] = len(vm_list)
+        return result
+
+    # ------------------------------------------------------------------
     # VM operations
     # ------------------------------------------------------------------
 

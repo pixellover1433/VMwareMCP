@@ -40,6 +40,7 @@ When to use this server:
 Capabilities provided by mounted tool modules:
 - VMs: list VMs and get VM details (config, network, power state).
 - Power: query and control VM power state (on, off, suspend, shutdown, pause, unpause).
+- Health: check that the server can reach the vmrest backend (check_server_health).
 """,
 )
 
@@ -66,7 +67,7 @@ def get_client() -> VMRestClient:
 
 def _register_modules() -> None:
     """Import each tool module, register its tools, and mount it."""
-    from vmware_mcp.modules import power, vm
+    from vmware_mcp.modules import health, power, vm
 
     client = get_client()
 
@@ -77,6 +78,10 @@ def _register_modules() -> None:
     power.register(client)
     mcp.mount(power.tools)
     logger.info("Mounted tool module: power")
+
+    health.register(client)
+    mcp.mount(health.tools)
+    logger.info("Mounted tool module: health")
 
 
 # ---------------------------------------------------------------------------
