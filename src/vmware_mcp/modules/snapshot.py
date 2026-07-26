@@ -2,8 +2,11 @@
 
 Snapshot information is retrieved by invoking the local ``vmcli.exe`` binary
 (via :class:`VMCliClient`), since the vmrest REST API does not expose snapshot
-queries. These tools therefore only work when the MCP server runs on the same
-host as VMware Workstation.
+queries. The VM ``id`` is first resolved to its VMX filesystem path via the
+vmrest API, then passed to vmcli.
+
+These tools only work when the MCP server runs on the same host as VMware
+Workstation (vmcli.exe is invoked locally).
 """
 
 from __future__ import annotations
@@ -13,23 +16,26 @@ import json
 from fastmcp import FastMCP
 
 from vmware_mcp.vmcli_client import VMCliClient, VMCliError
+from vmware_mcp.vmrest_client import VMRestClient, VMRestClientError
 
 tools = FastMCP(
     "VMware Snapshots",
-    instructions="Use this module to inspect VM snapshots. Use get_vm_snapshots with a VM's VMX file path (the 'path' field from list_vms) to list all snapshots and see the current snapshot and their parent/child relationships.",
+    instructions="Use this module to inspect VM snapshots. Use get_vm_snapshots with a VM 'id' (from list_vms) to list all snapshots, see which one is current, and understand their parent/child relationships.",
 )
 
-# Module-level vmcli client reference (set during register)
+# Module-level client references (set during register)
+_client: VMRestClient | None = None
 _vmcli: VMCliClient | None = None
 
 
-def register(vmcli: VMCliClient) -> None:
-    """Register snapshot tools with the given vmcli client."""
-    global _vmcli
+def register(client: VMRestClient, vmcli: VMCliClient) -> None:
+    """Register snapshot tools with the vmrest and vmcli clients."""
+    global _client, _vmcli
+    _client = client
     _vmcli = vmcli
 
     @tools.tool()
-    def get_vm_snapshots(vmx_path: str) -> str:
+    def get_vm_snapshots(vm_id: str) -> str:
         """List all snapshots of a virtual machine.
 
         When to use:
@@ -38,15 +44,17 @@ def register(vmcli: VMCliClient) -> None:
           snapshot tree (which snapshot descends from which).
 
         How to use:
-        - ``vmx_path``: the ``path`` field returned by list_vms (the full
-          filesystem path to the VM's ``.vmx`` file, e.g.
-          ``C:\\VMs\\Ubuntu\\Ubuntu.vmx``). Do NOT pass the ``id`` field.
+        - ``vm_id``: the ``id`` field returned by list_vms. This tool
+          automatically resolves the id to the VM's ``.vmx`` file path via the
+          vmrest API before querying snapshots — you do NOT need to supply a
+          filesystem path.
 
-        This tool runs the local ``vmcli.exe`` binary; it only works when the
+        This tool runs the local ``vmcli.exe`` binary, so it only works when the
         MCP server runs on the same host as VMware Workstation.
 
         Returns a JSON object with:
-        - ``vmx_path``: the queried VMX path.
+        - ``vm_id``: the VM identifier that was queried.
+        - ``vmx_path``: the resolved VMX path used for the vmcli query.
         - ``current_uid``: UID of the currently active snapshot.
         - ``count``: total number of snapshots.
         - ``snapshots``: array of snapshot objects, each with:
@@ -60,6 +68,7 @@ def register(vmcli: VMCliClient) -> None:
         Example output:
         ```json
         {
+          "vm_id": "AB12CD34",
           "vmx_path": "C:\\VMs\\Ubuntu\\Ubuntu.vmx",
           "current_uid": 1,
           "count": 1,
@@ -77,24 +86,42 @@ def register(vmcli: VMCliClient) -> None:
         ```
 
         Args:
-            vmx_path: Full path to the VM's .vmx file (the ``path`` field from list_vms).
+            vm_id: The ``id`` field returned by list_vms.
         """
+        assert _client is not None
         assert _vmcli is not None
 
-        if not vmx_path or not vmx_path.strip():
+        if not vm_id or not vm_id.strip():
             return json.dumps({
-                "vmx_path": vmx_path,
+                "vm_id": vm_id,
+                "vmx_path": None,
                 "current_uid": None,
                 "count": 0,
                 "snapshots": [],
                 "success": False,
-                "error": "vmx_path is required. Pass the 'path' field from list_vms.",
+                "error": "vm_id is required. Pass the 'id' field from list_vms.",
             }, indent=2)
 
+        # Resolve the VM id to its VMX filesystem path via the vmrest API.
+        try:
+            vmx_path = _client.get_vm_path(vm_id)
+        except VMRestClientError as exc:
+            return json.dumps({
+                "vm_id": vm_id,
+                "vmx_path": None,
+                "current_uid": None,
+                "count": 0,
+                "snapshots": [],
+                "success": False,
+                "error": f"Could not resolve VM id to a VMX path: {exc}",
+            }, indent=2)
+
+        # Query snapshots via the local vmcli.exe binary.
         try:
             result = _vmcli.get_snapshots(vmx_path)
         except VMCliError as exc:
             return json.dumps({
+                "vm_id": vm_id,
                 "vmx_path": vmx_path,
                 "current_uid": None,
                 "count": 0,
@@ -104,6 +131,7 @@ def register(vmcli: VMCliClient) -> None:
             }, indent=2)
 
         payload = {
+            "vm_id": vm_id,
             "vmx_path": result.vmx_path,
             "current_uid": result.current_uid,
             "count": result.count,

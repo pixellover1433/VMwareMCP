@@ -157,6 +157,28 @@ class VMRestClient:
             })
         return results
 
+    def get_vm_path(self, vm_id: str) -> str:
+        """Resolve a VM ``id`` to its VMX filesystem path.
+
+        The ``id`` and ``path`` are distinct values, and ``GET /api/vms/{id}``
+        does not return the path. This method therefore calls ``GET /api/vms``
+        (which returns a list of ``{"id": ..., "path": ...}`` objects) and
+        returns the ``path`` of the entry whose ``id`` matches ``vm_id``.
+
+        Raises :class:`VMRestClientError` if no VM with the given id is found.
+        """
+        data = self._request("GET", "/api/vms")
+        vm_list: list = data if isinstance(data, list) else data.get("vms", []) if data else []
+        for vm_raw in vm_list:
+            if vm_raw.get("id") == vm_id:
+                path = vm_raw.get("path")
+                if not path:
+                    raise VMRestClientError(
+                        404, f"VM '{vm_id}' has no path in the vmrest response."
+                    )
+                return path
+        raise VMRestClientError(404, f"VM not found: {vm_id}")
+
     def get_power_state(self, vm_id: str) -> Dict[str, Any]:
         """Return power state for a single VM.
 

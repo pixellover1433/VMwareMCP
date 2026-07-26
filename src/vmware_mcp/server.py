@@ -98,7 +98,7 @@ def _register_modules() -> None:
     mcp.mount(health.tools)
     logger.info("Mounted tool module: health")
 
-    snapshot.register(vmcli)
+    snapshot.register(client, vmcli)
     mcp.mount(snapshot.tools)
     logger.info("Mounted tool module: snapshot")
 
